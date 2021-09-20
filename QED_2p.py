@@ -1,13 +1,16 @@
 import primaries_2p as pr
 import numpy as np
+from numpy import euler_gamma
 import pickle
 from tqdm import trange
-from scipy.special import factorial
+from scipy.special import factorial, digamma, binom
 from scipy.integrate import dblquad
 
+def harm(n):
+    return digamma(n+1)+euler_gamma
 
 def mass_term(O1, O2):
-    r = sum(sum( O1[m1]*O2[m2].conjugate() * 1j**(m1.conf_dim()-m2.conf_dim()) * (
+    r = sum(sum( O1[m1]*O2[m2].conjugate() * (
         1/factorial(m1.conf_dim()+m2.conf_dim()-2)) * (
 
         factorial(m1.k1+m2.k1-1)*factorial(m1.k2+m2.k2) +\
@@ -17,28 +20,25 @@ def mass_term(O1, O2):
     return r
 
 
-def interaction_s_chan(O1, O2):
-    r = sum(sum( O1[m1]*O2[m2].conjugate() * 1j**(m1.conf_dim()-m2.conf_dim()) * (
-        1/(factorial(m1.k1+m1.k2+1)*factorial(m2.k1+m2.k2+1))) * (
-
-        factorial(m1.k1)*factorial(m1.k2) *\
-            factorial(m2.k1)*factorial(m2.k2)
-
-    ) for m1 in O1.monomials ) for m2 in O2.monomials )
+def interaction_s_chan(k1, k2, k3, k4):
+    r = factorial(k1)*factorial(k2)*factorial(k3)*factorial(k4) /(
+        factorial(k1+k2+1)*factorial(k3+k4+1))
     return r
 
 
-def interaction_t_chan(O1, O2):
-    r = sum(sum( O1[m1]*O2[m2].conjugate() * 1j**(m1.conf_dim()-m2.conf_dim()) * (
-        
-        gross_integral(m1.k1,m1.k2,m2.k1,m2.k2)
+def interaction_t_chan(k1, k2, k3, k4):
+    r = sum(sum((
+ 
+        (-1)**(m+n) * binom(k2, m) * binom(k4, n) *((
+            (k1+m)*harm(k1+m) + (k3+n)*harm(k3+n) - 1
+        )/(k1+k3+m+n) - harm(k1+k3+m+n-1))
 
-    ) for m1 in O1.monomials ) for m2 in O2.monomials )
+    ) for m in range(k2+1) ) for n in range(k4+1) )
     return r
 
 
 def gross_integral(*k):
-    e = 0.01
+    e = 0.001
 
     def egregious_integrand(x,y):
         return x**k[0] * (1-x)**k[1] * (
@@ -50,7 +50,12 @@ def gross_integral(*k):
 
 
 def interaction_term(O1, O2):
-    return interaction_s_chan(O1, O2) - 0.5*interaction_t_chan(O1, O2)
+    r = sum(sum( O1[m1]*O2[m2].conjugate() * (
+
+        interaction_s_chan(m1.k1, m1.k2, m2.k1, m2.k2) - interaction_t_chan(m1.k1, m1.k2, m2.k1, m2.k2)
+
+    ) for m1 in O1.monomials ) for m2 in O2.monomials )
+    return r
 
 
 def generate(del_max):

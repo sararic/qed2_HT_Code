@@ -18,7 +18,8 @@ class Monomial:
         return self.k1 + self.k2 + 1
 
     def __repr__(self):
-        rep = "  ∂^{}ψ† ∂^{}ψ"
+        #rep = "  ∂^{}ψ† ∂^{}ψ"
+        rep = "  \\partial^{}\\psi^\\dagger \\partial^{}\\psi"
         res = '' if self.coeff == 1 else str(self.coeff)
         res += rep.format(self.k1,self.k2)
         return res
@@ -201,19 +202,17 @@ class DirichletBasis:
 
         w,v = np.linalg.eig(graham)
 
-        zero = 1e-20 # we will forget states that have this norm
-
         self.states = [
             mono_sum(
                 c*self[i] for i,c in enumerate(v[:,j])
-            )*(1/sqrt(N2.real)) for j,N2 in enumerate(w) if N2.real > zero
+            )*(1/sqrt(N2.real)) for j,N2 in enumerate(w) if N2.real > 0
         ]
 
 
 def Graham(O1, O2):
     """Compute the Graham matrix elements between two primary operators."""
     D1, D2 = O1.conf_dim(), O2.conf_dim()
-    r =  1j**(D1-D2)/factorial(D1+D2-1)
+    r =  1/factorial(D1+D2-1)
     r *= sum(sum( O1[m1]*O2[m2]*(
         factorial(m1.k1 + m2.k1) * factorial(m1.k2 + m2.k2)
     ) for m1 in O1.monomials ) for m2 in O2.monomials )

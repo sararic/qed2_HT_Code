@@ -7,9 +7,12 @@ from operator import itemgetter
 
 import numpy as np
 from numba import jit
+from scipy.integrate import quad
 from matplotlib import pyplot as plt
 
-dx = 0.001
+import truncation
+
+dx = 0.01
 max_cache_size = 200 #KibiBytes
 
 max_cache_size = int((2<<9)*max_cache_size)
@@ -63,7 +66,7 @@ def ker_array(m, M2, space, epsilon):
     return [ [ ker( x, y, m, M2, epsilon ) for x in space ] for y in space]
 
 
-def psi_recursive(m, M2, n=10):
+def psi_recursive(m, M2, n=3):
     """
     Attempt to solve the equation recursively.
     This method takes a lot of time to converge, and has a lot of artefacts
@@ -150,8 +153,11 @@ def solve_psi_M(m, n=2):
 
 def main(*masses):
     for m in masses:
-        x, psi, M = solve_psi_M(m, 5)
-        plt.plot(x, psi, label=f"m={m}, M = {round(M,1)}")
+        x, psi, M = solve_psi_M(m, 10)
+        x_trunc, psi_trunc, M_trunc = truncation.bound_state_psi(m, 12, dx)
+        psi_trunc = psi_trunc/integral(psi_trunc, 0, len(psi_trunc))
+        plt.plot(x, psi, label=f"m={m}, M = {round(M,1)} (numerical integration)")
+        plt.plot(x_trunc, psi_trunc, label=f"m={m}, M = {round(M_trunc,1)} (truncation)")
     manage_cache()
 
 
